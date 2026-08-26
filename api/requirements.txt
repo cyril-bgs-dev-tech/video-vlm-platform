@@ -18,7 +18,13 @@ celery[redis]>=5.4.0
 redis[asyncio]>=5.0.0
 
 # ── HuggingFace ecosystem ──────────────────────────────────────
-transformers>=4.43.0
+# Épinglé : les shims de compatibilité v5 de detection_worker.py (_cpu_linspace,
+# _ensure_generation_mixin, _relax_remote_overrides, DynamicCache…) ont été mis au
+# point contre 5.3.0 exactement, et c'est cette version sur laquelle Mini-InternVL-4B
+# et InternVL3.5-8B ont été validés en inférence réelle. Un `>=` laissait pip dériver
+# (5.16.0 au dernier rebuild) sans que rien ne signale que le contournement et sa
+# cible ne correspondaient plus. Ne délier qu'après avoir rejoué les contrôles VLM.
+transformers==5.3.0
 accelerate>=0.31.0
 huggingface-hub>=0.24.0
 sentencepiece>=0.2.0
