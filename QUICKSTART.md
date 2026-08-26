@@ -10,13 +10,16 @@
 
 1. Ouvrir http://localhost:8501
 2. Cliquer sur "🎬 Démo détection"
-3. Dans l'onglet **"⚡ Charger une vidéo de démo"**, choisir :
-   - 🚶 **Piétons traversant** (1.9 MB) - Test rapide de détection de personnes
-   - 🚗 **Trafic urbain** (15 MB) - Détection multi-objets (voitures, feux, panneaux)
-   - 🏙️ **Rue animée** (94 MB) - Démo complète avec tous types d'éléments
-
+3. Dans l'onglet **"Démos"**, choisir parmi les 10 démos multi-spécialités :
+   trafic urbain, piétons & foule, rue commerçante, vue aérienne drone, faune,
+   sports collectifs, conduite de nuit, marché, chantier BTP, sous-marin.
 4. Cliquer sur "🚀 Charger" pour la vidéo choisie
 5. Les requêtes de détection recommandées sont automatiquement suggérées !
+
+> ℹ️ Les fichiers vidéo ne sont pas versionnés (~770 Mo). Après un `git clone`, les
+> boutons de démo sont désactivés tant que `sample_videos/` est vide — voir
+> [`sample_videos/README.md`](sample_videos/README.md). L'onglet **"Upload"**
+> fonctionne sans elles, avec n'importe quelle vidéo.
 
 ### 2. Uploader votre propre vidéo
 

@@ -1,110 +1,52 @@
-# Vidéos de test pour VLM Demo
+# Vidéos de démonstration
 
-## Vidéos téléchargées
+> ⚠️ **Les fichiers `.mp4` ne sont pas versionnés.** Ils pèsent ~770 Mo au total et
+> sont exclus par `.gitignore`. Après un `git clone`, ce dossier est vide : la page
+> « 🎬 Démo détection » affiche alors la grille des démos avec les boutons désactivés.
+> Deux options pour la peupler — voir [Se procurer les vidéos](#se-procurer-les-vidéos).
 
-### 1. street_pedestrians.mp4 (1.9 MB)
-**Description** : Piétons traversant une rue  
-**Idéal pour** : Détection de personnes, tracking, actions (marche, traversée)  
-**Requêtes suggérées** :
-```
-person
-walking
-crossing
-```
+L'interface attend exactement ces noms de fichiers dans `sample_videos/`
+(définis dans `streamlit_app/pages/1_demo_detection.py`, exposés par l'API sur
+`GET /demo-datasets`) :
 
-### 2. urban_traffic.mp4 (15 MB)
-**Description** : Trafic urbain avec véhicules et intersection  
-**Idéal pour** : Détection de véhicules, feux tricolores, panneaux  
-**Requêtes suggérées** :
-```
-car
-truck
-traffic light
-stop sign
-person
-```
+| # | Fichier attendu | Démo | Spécialité | Requêtes suggérées |
+|---|-----------------|------|------------|--------------------|
+| 1 | `urban_traffic.mp4` | 🚗 Trafic urbain dense | véhicules & transport | car, truck, bus, person, traffic light, motorcycle, sign |
+| 2 | `street_pedestrians.mp4` | 🚶 Piétons & foule | personnes & actions | person, backpack, handbag, umbrella, stroller, dog |
+| 3 | `bustling_street.mp4` | 🏙️ Rue commerçante | scène urbaine complète | person, car, bicycle, bus, traffic light, sign, storefront |
+| 4 | `aerial_drone_view.mp4` | 🛩️ Vue aérienne drone | géospatial & drone | car, vehicle, person, building, traffic light, bus, motorcycle |
+| 5 | `wildlife_safari.mp4` | 🦁 Faune & animaux | animaux & biodiversité | elephant, giraffe, zebra, bird, tree, grass, animal |
+| 6 | `team_sports_match.mp4` | ⚽ Sports collectifs | sports & action | person, ball, player, goal, net, crowd, uniform |
+| 7 | `night_drive.mp4` | 🌙 Conduite de nuit | conduite & faible luminosité | car, traffic light, sign, person, street light, building, headlight |
+| 8 | `market_stalls.mp4` | 🧺 Marché & étals | retail & marchés | person, fruit, vegetable, box, table, bottle, canopy |
+| 9 | `construction_site.mp4` | 🏗️ Chantier BTP | industrie & construction | person, truck, crane, hard hat, tool, concrete, excavator |
+| 10 | `underwater_dive.mp4` | 🐠 Sous-marin & plongée | sous-marin & océan | fish, coral, diver, turtle, jellyfish, reef, sea |
 
-### 3. bustling_street.mp4 (94 MB)
-**Description** : Rue urbaine animée avec piétons et véhicules  
-**Idéal pour** : Démo complète multi-signaux  
-**Requêtes suggérées** :
-```
-person
-car
-bicycle
-bus
-sign
-traffic light
-```
+## Se procurer les vidéos
 
-## Utilisation
+**Option 1 — n'importe quelle vidéo.** L'onglet « 📁 Uploader une vidéo » de la page
+démo accepte MP4, MOV, AVI, MKV, WEBM (2 Go max). Aucune vidéo de démo n'est requise.
 
-### Option 1 : Upload via l'interface
-1. Ouvrir http://localhost:8501
-2. Aller dans "🎬 Démo détection"
-3. Uploader une des vidéos ci-dessus
-4. Sélectionner un preset ou des requêtes personnalisées
-5. Lancer l'analyse
+**Option 2 — reconstituer le jeu de démo.** Les vidéos d'origine viennent de
+[Pexels](https://www.pexels.com/videos/) (libres de droits, sans attribution requise).
+Télécharger une vidéo par ligne du tableau, la renommer avec le nom de fichier attendu
+et la déposer dans ce dossier. Les noms doivent correspondre exactement — c'est le seul
+critère de détection. Le dossier est monté dans le conteneur Streamlit
+(`./sample_videos:/app/sample_videos`), un simple dépôt de fichier suffit, sans rebuild.
 
-### Option 2 : Ligne de commande (pour tests rapides)
+## Notes d'usage
+
+- **Test le plus rapide** : `street_pedestrians.mp4` (~2 Mo, ~6 s, 1280×720) — c'est la
+  vidéo utilisée pour les contrôles end-to-end.
+- **Démo la plus riche** : `bustling_street.mp4` ou `market_stalls.mp4` (beaucoup de
+  classes simultanées).
+- **Vues aériennes** : sur `aerial_drone_view.mp4`, seul `yolo_visdrone` (fine-tuné
+  VisDrone2019) donne des résultats exploitables. Les modèles génériques (YOLO-World,
+  GroundingDINO) sont entraînés au niveau du sol et détectent très peu en vue plongeante.
+
+## Test en ligne de commande
+
 ```bash
-# Via l'API directement
-curl -X POST "http://localhost:8000/upload" \
-  -F "file=@street_pedestrians.mp4"
-```
-
-## Caractéristiques des vidéos
-
-| Vidéo | Taille | Durée estimée | Résolution | Contenu principal |
-|-------|--------|---------------|------------|-------------------|
-| street_pedestrians.mp4 | 1.9 MB | ~5-10s | SD | Piétons |
-| urban_traffic.mp4 | 15 MB | ~15-30s | HD | Trafic, véhicules |
-| bustling_street.mp4 | 94 MB | ~30-60s | HD | Scène urbaine complète |
-
-## Source
-
-Vidéos libres de droits provenant de [Pexels](https://www.pexels.com/videos/)  
-Licence : Utilisation gratuite, pas d'attribution requise
-
-## Recommandations pour la démo
-
-**Pour un test rapide** : Utiliser `street_pedestrians.mp4` (léger, rapide à analyser)
-
-**Pour une démo complète** : Utiliser `bustling_street.mp4` (variété d'éléments à détecter)
-
-**Pour tester le tracking** : Utiliser `urban_traffic.mp4` (véhicules en mouvement)
-
-## Requêtes de détection recommandées
-
-### Preset "Véhicules"
-```
-car
-truck
-bicycle
-motorcycle
-bus
-```
-
-### Preset "Personnes"
-```
-person
-crowd
-face
-```
-
-### Preset "Textes"
-```
-sign
-text
-label
-plate
-```
-
-### Preset "Complet"
-```
-person
-car
-bicycle
-traffic light
-sign
+curl -X POST "http://localhost:8000/upload" -F "file=@street_pedestrians.mp4"
+# -> {"video_id": "...", "duration_sec": 6.34, "fps": 29.97, "width": 1280, ...}
 ```

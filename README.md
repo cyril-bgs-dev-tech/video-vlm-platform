@@ -23,16 +23,20 @@ Streamlit (8501) ──► FastAPI (8000) ──► Celery Workers (GPU)
 
 ## État réel des modèles de détection
 
-Vérifié en end-to-end sur RTX 5090 (`mock=false` = inférence réelle, pas de simulation) :
+Vérifié en end-to-end (upload → WebSocket) sur RTX 5090, vidéo 1280×720. Le champ
+`mock` du message `started` distingue l'inférence réelle de la simulation ; l'UI
+affiche « Mode mock » le cas échéant. Les latences sont des moyennes sur une passe
+courte (2 à 12 frames) et **incluent le chargement du modèle** — elles surestiment
+donc le régime établi, d'autant plus que la passe est courte.
 
-| Modèle | État | Latence observée | Notes |
-|--------|------|------------------|-------|
-| `yolo_visdrone` | ✅ Réel | ~17 ms/frame | YOLOv11s fine-tuné VisDrone2019, 10 classes fixes, vues aériennes |
-| `grounding_dino` | ✅ Réel | ~190 ms/frame | fp32 + autocast fp16 (le fp16 intégral n'est pas supporté) |
-| `yolo_world_v2` | ✅ Réel | ~25 ms/frame à chaud | Open-vocabulaire ; premier appel plus lent (chargement) |
-| `mini_internvl_4b` | ✅ Réel | ~13 s/frame | Grounding via `model.chat`, tuiles 448 |
-| `internvl35_8b` | ✅ Réel | ~12 s/frame | Un seul gros VLM en VRAM à la fois (éviction automatique) |
-| `locate_anything_3b` | ⚠️ Simulation | — | Charge et génère, mais sortie dégénérée sous transformers v5 (Parallel Box Decoding custom). Étiqueté « (simulation) » dans l'UI |
+| Modèle | État | Latence moyenne mesurée | Notes |
+|--------|------|-------------------------|-------|
+| `yolo_visdrone` | ✅ Réel | 17–64 ms/frame | YOLOv11s fine-tuné VisDrone2019, 10 classes fixes, vues aériennes |
+| `grounding_dino` | ✅ Réel | ~175 ms/frame | fp32 + autocast fp16 (le fp16 intégral n'est pas supporté) |
+| `yolo_world_v2` | ✅ Réel | ~210 ms/frame sur 12 frames | Open-vocabulaire ; descend à ~25 ms/frame une fois chargé |
+| `mini_internvl_4b` | ✅ Réel | ~15 s/frame | Grounding via `model.chat`, tuiles 448 |
+| `internvl35_8b` | ✅ Réel | ~14 s/frame | Un seul gros VLM en VRAM à la fois (éviction automatique) |
+| `locate_anything_3b` | ⚠️ Simulation | — | Le code remote (Parallel Box Decoding) est incompatible transformers v5 : le modèle charge et génère, mais la sortie est dégénérée et ne produit aucune boîte. Son chargement est court-circuité (`LOCATE_ANYTHING_DEGRADED=0` pour le réactiver) |
 
 `ALLOW_MOCK=0` désactive le repli sur simulation : un modèle indisponible renvoie alors une erreur
 explicite au lieu de résultats factices.
@@ -53,7 +57,8 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 ### 2. Cloner et configurer
 
 ```bash
-git clone <repo>
+git clone https://github.com/cyril-bgs-dev-tech/video-vlm-platform.git
+# miroir : https://gitlab.com/cyril.bgs.dev/video-vlm-platform.git
 cd video-vlm-platform
 cp .env.example .env
 ```
