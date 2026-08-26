@@ -1,0 +1,3 @@
+@echo off
+echo  Logs en temps réel (Ctrl+C pour quitter)...
+docker compose logs -f streamlit api worker_vlm worker_detection worker_clustering

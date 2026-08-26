@@ -1,0 +1,270 @@
+# docker-compose.yml — Video VLM Platform
+# Python 3.12 + PyTorch ≥2.7 cu128 + SAM 3.1 + RTX 5090
+
+services:
+
+  streamlit:
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://api:8000
+      - WS_BASE_URL=ws://api:8000
+    volumes:
+      - ./streamlit_app:/app
+      - ./sample_videos:/app/sample_videos
+      - video_data:/data/videos
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    healthcheck:
+      # l'image streamlit n'embarque pas curl → check python
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=8)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://vlm:vlm@postgres:5432/vlmdb
+      - QDRANT_URL=http://qdrant:6333
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MODELS_PATH=/models
+      - VIDEO_DIR=/data/videos
+      - LOG_LEVEL=INFO
+      - HF_TOKEN=${HF_TOKEN:-}
+      - TRANSFORMERS_CACHE=/models/hf_cache
+      - HF_HOME=/models/hf_cache
+      - ALLOW_MOCK=${ALLOW_MOCK:-1}
+    volumes:
+      - ./api:/app
+      - ./streamlit_app/pages/realtime.html:/app/realtime.html:ro
+      - video_data:/data/videos
+      - model_weights:/models
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    healthcheck:
+      # /health interroge Celery (inspect ~2 s × 3) → timeout large
+      test: ["CMD", "curl", "-f", "-m", "12", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+
+  # Worker VLM — SAM 3.1 (fallback SAM 2.1), LLaVA, VideoMAE
+  worker_vlm:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    command: ["bash", "-c", "/app/download_models.sh && celery -A workers.celery_app worker -Q vlm_queue --pool=solo --concurrency=1 --loglevel=info -n vlm_worker@%h"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MODELS_PATH=/models
+      - VIDEO_DIR=/data/videos
+      - HF_TOKEN=${HF_TOKEN:-}
+      - TRANSFORMERS_CACHE=/models/hf_cache
+      - HF_HOME=/models/hf_cache
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    volumes:
+      - ./api:/app
+      - video_data:/data/videos
+      - model_weights:/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Worker Detection — GroundingDINO HF, YOLO-World v2, OCR, Re-ID
+  worker_detection:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    command: ["bash", "-c", "/app/download_models.sh && celery -A workers.celery_app worker -Q detection_queue --pool=solo --concurrency=1 --loglevel=info -n detection_worker@%h"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MODELS_PATH=/models
+      - VIDEO_DIR=/data/videos
+      - HF_TOKEN=${HF_TOKEN:-}
+      - TRANSFORMERS_CACHE=/models/hf_cache
+      - HF_HOME=/models/hf_cache
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - ALLOW_MOCK=${ALLOW_MOCK:-1}
+      - YOLO_CONFIG_DIR=/tmp/Ultralytics
+    volumes:
+      - ./api:/app
+      - video_data:/data/videos
+      - model_weights:/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Worker Clustering — CLIP, UMAP, Qdrant
+  worker_clustering:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    command: ["bash", "-c", "celery -A workers.celery_app worker -Q clustering_queue --pool=solo --concurrency=1 --loglevel=info -n clustering_worker@%h"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_URL=http://qdrant:6333
+      - MODELS_PATH=/models
+      - VIDEO_DIR=/data/videos
+      - HF_TOKEN=${HF_TOKEN:-}
+      - TRANSFORMERS_CACHE=/models/hf_cache
+      - HF_HOME=/models/hf_cache
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    volumes:
+      - ./api:/app
+      - video_data:/data/videos
+      - model_weights:/models
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vlm
+      POSTGRES_PASSWORD: vlm
+      POSTGRES_DB: vlmdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./api/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vlm -d vlmdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    networks:
+      - vlm_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  flower:
+    image: mher/flower:2.0
+    command: celery flower --broker=redis://redis:6379/0 --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - vlm_net
+    restart: unless-stopped
+
+networks:
+  vlm_net:
+    driver: bridge
+
+volumes:
+  video_data:
+  model_weights:
+  postgres_data:
+  qdrant_data:
+  minio_data:
+  redis_data:

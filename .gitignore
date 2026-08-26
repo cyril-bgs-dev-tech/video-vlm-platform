@@ -1,0 +1,66 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# ── Virtualenvs ───────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── IDEs ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Secrets (ne jamais commiter) ──────────────────────────────
+.env
+.env.local
+.env.production
+streamlit_app/.streamlit/secrets.toml
+
+# ── Modèles (trop lourds pour git) ───────────────────────────
+models/
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.bin
+*.ckpt
+*.pkl
+
+# ── Données vidéo ─────────────────────────────────────────────
+data/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Docker volumes locaux ─────────────────────────────────────
+postgres_data/
+redis_data/
+qdrant_data/
+minio_data/
+
+# ── Jupyter ───────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb

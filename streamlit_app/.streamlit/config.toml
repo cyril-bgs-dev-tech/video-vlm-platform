@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════════════
+# streamlit_app/.streamlit/config.toml
+# Configuration Streamlit pour la plateforme VLM
+# ═══════════════════════════════════════════════════════════════
+
+[server]
+port                = 8501
+address             = "0.0.0.0"
+maxUploadSize       = 2048       # Mo — 2 Go max pour les vidéos
+maxMessageSize      = 2048       # Mo — taille max des messages WebSocket Streamlit
+enableCORS          = false
+enableXsrfProtection = true
+headless            = true
+
+[browser]
+gatherUsageStats    = false
+serverAddress       = "localhost"
+serverPort          = 8501
+
+[theme]
+base                = "dark"
+primaryColor        = "#7F77DD"   # Violet — couleur principale
+backgroundColor     = "#0e1117"   # Fond sombre
+secondaryBackgroundColor = "#1e2130"
+textColor           = "#e2e8f0"
+font                = "sans serif"
+
+[runner]
+# Réduire le délai de rerun pour les mises à jour temps réel
+magicEnabled        = false
+fastReruns          = true
+
+[logger]
+level               = "info"
+messageFormat       = "%(asctime)s %(levelname)s %(name)s: %(message)s"

@@ -1,0 +1,80 @@
+# ═══════════════════════════════════════════════════════════════════
+# Requirements Windows natif (développement local uniquement)
+# Pour la production : utiliser Docker
+#
+# INSTALLATION :
+#   Étape 1 : pip install torch torchvision torchaudio \
+#                 --index-url https://download.pytorch.org/whl/cu124
+#   Étape 2 : pip install -r api/requirements-windows.txt
+# ═══════════════════════════════════════════════════════════════════
+
+# ── Framework web ──────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+aiofiles>=23.2.0
+httpx>=0.27.0
+pydantic>=2.7.0
+python-dotenv>=1.0.0
+
+# ── Celery / Redis ─────────────────────────────────────────────────
+celery[redis]>=5.4.0
+redis[asyncio]>=5.0.0
+
+# ── VLM & Transformers ─────────────────────────────────────────────
+transformers>=4.43.0
+accelerate>=0.31.0
+sentencepiece>=0.2.0
+tokenizers>=0.19.0
+# flash-attn   → NON DISPONIBLE sur Windows natif, ignoré
+# bitsandbytes → NON DISPONIBLE sur Windows natif, ignoré
+
+# ── CLIP / Open-CLIP ───────────────────────────────────────────────
+open-clip-torch>=2.26.0
+
+# ── YOLO-World ─────────────────────────────────────────────────────
+ultralytics>=8.2.0
+
+# ── Action Recognition ─────────────────────────────────────────────
+timm>=1.0.3
+einops>=0.8.0
+
+# ── OCR ────────────────────────────────────────────────────────────
+# PaddleOCR CPU sur Windows
+paddlepaddle==2.6.2
+paddleocr>=2.8.0
+easyocr>=1.7.1
+
+# ── Clustering ─────────────────────────────────────────────────────
+umap-learn>=0.5.6
+hdbscan>=0.8.38
+scikit-learn>=1.5.0
+faiss-cpu                      # faiss-gpu n'existe pas sur Windows
+
+# ── Vector DB ──────────────────────────────────────────────────────
+qdrant-client>=1.9.0
+
+# ── Base de données ────────────────────────────────────────────────
+asyncpg>=0.29.0
+sqlalchemy[asyncio]>=2.0.30
+alembic>=1.13.0
+
+# ── Stockage ───────────────────────────────────────────────────────
+minio>=7.2.7
+
+# ── Traitement vidéo ───────────────────────────────────────────────
+opencv-python-headless>=4.9.0
+av>=12.1.0                     # PyAV — fonctionne sur Windows
+imageio[ffmpeg]>=2.34.0
+# decord → NON DISPONIBLE sur Windows, remplacé par av
+
+# ── Utilitaires ────────────────────────────────────────────────────
+numpy>=1.26.0,<2.0.0
+pandas>=2.2.0
+Pillow>=10.3.0
+scipy>=1.13.0
+tqdm>=4.66.0
+psutil>=5.9.8
+
+# ── Monitoring ─────────────────────────────────────────────────────
+mlflow>=2.14.0

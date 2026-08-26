@@ -1,0 +1,53 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Virtualenvs ───────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── IDEs ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# ── Git ───────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Données / Modèles (montés en volumes) ─────────────────────
+models/
+data/
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.bin
+
+# ── Vidéos de test ────────────────────────────────────────────
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# ── Logs et tmp ───────────────────────────────────────────────
+*.log
+*.tmp
+.env
+.env.*
+!.env.example
+
+# ── Tests et docs ─────────────────────────────────────────────
+tests/
+docs/
+*.md

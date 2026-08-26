@@ -1,0 +1,41 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# ── Virtualenvs ───────────────────────────────────────────────
+.venv/
+venv/
+
+# ── IDEs ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# ── Modèles (montés en volume Docker, pas dans l'image) ───────
+models/
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.bin
+
+# ── Données vidéo (montées en volume) ─────────────────────────
+data/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Secrets ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLM Detection - Temps Réel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0e1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #7F77DD;
+        }
+
+        .subtitle {
+            color: #8b949e;
+            margin-bottom: 2rem;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            background: #1e2130;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .status-label {
+            font-size: 0.75rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #7F77DD;
+            margin-top: 0.25rem;
+        }
+
+        .controls {
+            background: #1e2130;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-bottom: 0.5rem;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            background: #0e1117;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        button {
+            background: #7F77DD;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #9D97E8;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.stop {
+            background: #e53e3e;
+        }
+
+        button.stop:hover {
+            background: #fc8181;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        #videoCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .overlay-info {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .detection-list {
+            background: #1e2130;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .detection-item {
+            background: #0e1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detection-label {
+            font-weight: 600;
+            color: #7F77DD;
+        }
+
+        .detection-score {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2d3748;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7F77DD, #9D97E8);
+            transition: width 0.3s;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 VLM Detection - Temps Réel</h1>
+        <p class="subtitle">Analyse vidéo en temps réel avec détection d'objets via WebSocket</p>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-label">Statut</div>
+                <div class="status-value" id="statusValue">Inactif</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Frame</div>
+                <div class="status-value" id="frameValue">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Détections</div>
+                <div class="status-value" id="detectionValue">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">FPS</div>
+                <div class="status-value" id="fpsValue">0</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label>ID Vidéo</label>
+                    <input type="text" id="videoId" placeholder="Entrez l'ID de la vidéo">
+                </div>
+                <div class="control-group">
+                    <label>Modèle</label>
+                    <select id="model">
+                        <option value="grounding_dino">GroundingDINO</option>
+                        <option value="yolo_world">YOLO-World</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Requêtes (séparées par virgule)</label>
+                    <input type="text" id="queries" value="person,car" placeholder="person,car,bicycle">
+                </div>
+                <div class="control-group">
+                    <label>FPS Analyse</label>
+                    <input type="number" id="fps" value="2" min="1" max="10">
+                </div>
+            </div>
+            <div class="control-row">
+                <button id="startBtn" onclick="startDetection()">🔴 Démarrer l'analyse</button>
+                <button id="stopBtn" class="stop hidden" onclick="stopDetection()">⏹️ Arrêter</button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <canvas id="videoCanvas"></canvas>
+            <div class="overlay-info" id="overlayInfo">En attente...</div>
+        </div>
+
+        <div class="detection-list" id="detectionList">
+            <h3 style="margin-bottom: 1rem;">Détections en temps réel</h3>
+            <div id="detectionsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let videoElement = null;
+        let canvas = document.getElementById('videoCanvas');
+        let ctx = canvas.getContext('2d');
+        let animationId = null;
+        let currentDetections = [];
+        let totalDetections = 0;
+        let startTime = null;
+        let frameCount = 0;
+
+        const colors = {
+            'person': '#00ff00',
+            'car': '#ff0000',
+            'truck': '#ff8000',
+            'bicycle': '#00ffff',
+            'bus': '#8000ff',
+            'traffic light': '#ffff00',
+            'stop sign': '#ff00ff'
+        };
+
+        function getColor(label) {
+            return colors[label] || '#00ff64';
+        }
+
+        async function startDetection() {
+            const videoId = document.getElementById('videoId').value;
+            const model = document.getElementById('model').value;
+            const queries = document.getElementById('queries').value;
+            const fps = parseInt(document.getElementById('fps').value);
+
+            if (!videoId) {
+                alert('Veuillez entrer un ID de vidéo');
+                return;
+            }
+
+            // Charger la vidéo
+            try {
+                const response = await fetch(`http://localhost:8000/upload/list`);
+                const data = await response.json();
+                const video = data.videos.find(v => v.video_id === videoId);
+                
+                if (!video) {
+                    alert('Vidéo non trouvée');
+                    return;
+                }
+
+                // Créer un élément vidéo temporaire pour obtenir les dimensions
+                videoElement = document.createElement('video');
+                videoElement.src = `http://localhost:8000/videos/${videoId}${getFileExtension(video.filename)}`;
+                videoElement.crossOrigin = 'anonymous';
+                
+                await new Promise((resolve, reject) => {
+                    videoElement.onloadedmetadata = resolve;
+                    videoElement.onerror = reject;
+                });
+
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+
+                // Démarrer le WebSocket
+                const wsUrl = `ws://localhost:8000/ws/detect/${videoId}`;
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('WebSocket connecté');
+                    ws.send(JSON.stringify({
+                        model: model,
+                        query: queries,
+                        fps: fps
+                    }));
+
+                    document.getElementById('startBtn').classList.add('hidden');
+                    document.getElementById('stopBtn').classList.remove('hidden');
+                    document.getElementById('statusValue').textContent = '🔴 Analyse en cours';
+                    document.getElementById('statusValue').style.color = '#e53e3e';
+                    
+                    startTime = Date.now();
+                    playVideo();
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'detection') {
+                        currentDetections = data.detections || [];
+                        totalDetections += currentDetections.length;
+                        frameCount++;
+                        
+                        updateStats(data.frame, data.timestamp);
+                        updateDetectionsList(currentDetections);
+                    } else if (data.type === 'done') {
+                        stopDetection();
+                        document.getElementById('statusValue').textContent = '✅ Terminé';
+                        document.getElementById('statusValue').style.color = '#4ade80';
+                    } else if (data.type === 'error') {
+                        console.error('Erreur:', data.message);
+                        document.getElementById('statusValue').textContent = '❌ Erreur';
+                        document.getElementById('statusValue').style.color = '#e53e3e';
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    document.getElementById('statusValue').textContent = ' Erreur WS';
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket fermé');
+                };
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du chargement de la vidéo');
+            }
+        }
+
+        function stopDetection() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            if (videoElement) {
+                videoElement.pause();
+                videoElement = null;
+            }
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+        }
+
+        function playVideo() {
+            if (!videoElement) return;
+
+            videoElement.play();
+            drawFrame();
+        }
+
+        function drawFrame() {
+            if (!videoElement || videoElement.paused) return;
+
+            // Dessiner la frame vidéo
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+            // Dessiner les détections
+            currentDetections.forEach(det => {
+                const bbox = det.bbox;
+                if (!bbox || bbox.length < 4) return;
+
+                const [x1, y1, x2, y2] = bbox;
+                const color = getColor(det.class);
+
+                // Dessiner le rectangle
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                // Dessiner le label
+                const text = `${det.class} ${det.confidence.toFixed(2)}`;
+                ctx.font = 'bold 16px Arial';
+                const textWidth = ctx.measureText(text).width;
+                
+                ctx.fillStyle = color;
+                ctx.fillRect(x1, y1 - 25, textWidth + 10, 25);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(text, x1 + 5, y1 - 8);
+            });
+
+            animationId = requestAnimationFrame(drawFrame);
+        }
+
+        function updateStats(frame, timestamp) {
+            document.getElementById('frameValue').textContent = frame;
+            document.getElementById('detectionValue').textContent = totalDetections;
+            
+            if (startTime) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const fps = Math.round(frameCount / elapsed);
+                document.getElementById('fpsValue').textContent = fps;
+            }
+
+            document.getElementById('overlayInfo').textContent = 
+                `Frame ${frame} | ${timestamp.toFixed(2)}s | ${currentDetections.length} objets`;
+        }
+
+        function updateDetectionsList(detections) {
+            const container = document.getElementById('detectionsContainer');
+            container.innerHTML = '';
+
+            detections.forEach((det, idx) => {
+                const item = document.createElement('div');
+                item.className = 'detection-item';
+                item.innerHTML = `
+                    <div>
+                        <span class="detection-label">${det.class}</span>
+                        ${det.track_id ? `<span style="color: #8b949e; margin-left: 0.5rem;">#${det.track_id}</span>` : ''}
+                    </div>
+                    <span class="detection-score">${(det.confidence * 100).toFixed(1)}%</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function getFileExtension(filename) {
+            return filename.substring(filename.lastIndexOf('.'));
+        }
+    </script>
+</body>
+</html>
