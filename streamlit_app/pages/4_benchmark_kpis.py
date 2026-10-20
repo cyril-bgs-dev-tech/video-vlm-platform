@@ -17,6 +17,11 @@ inject_global_css()
 
 # ── Données de référence (basées sur benchmarks publics + profils RTX 5090) ──
 
+# Modèles en cours d'entretien : grisés et retirés du comparatif tant que leur détection ne fonctionne pas.
+EN_ENTRETIEN = {
+    "LocateAnything-3B": "En cours d'entretien : son code distant est incompatible avec transformers v5 : le modèle charge et génère, mais sa sortie est dégénérée et ne produit aucune boîte.",
+}
+
 BASE_MODELS = {
     "LocateAnything-3B": {
         "params": "3B",
@@ -374,6 +379,10 @@ with st.sidebar:
     st.markdown("**Modèles comparés**")
     selected_models = []
     for name in BASE_MODELS:
+        if name in EN_ENTRETIEN:
+            st.checkbox(f"🔧 {name} (en cours d'entretien)", False, key=f"chk_{name}",
+                        disabled=True, help=EN_ENTRETIEN[name])
+            continue
         if st.checkbox(name, True, key=f"chk_{name}"):
             selected_models.append(name)
 

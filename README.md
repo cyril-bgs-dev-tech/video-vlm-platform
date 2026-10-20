@@ -19,7 +19,7 @@ Streamlit (8501) ──► FastAPI (8000) ──► Celery Workers (GPU)
 | `pages/2_analyses_detail.py` | 📊 Analyses détaillées | Vues par analyse (détection, OCR, clustering, actions) |
 | `pages/3_rapport.py` | 📋 Rapport intelligent | Synthèse générée à partir des analyses |
 | `pages/4_benchmark_kpis.py` | 📐 Benchmark & KPIs DataOps | 20 datasets multi-domaines (COCO, MOT20, VisDrone, BDD100K, DOTA, ExDark, FLIR…), sélection automatique du modèle par dataset, matrice dataset → modèle |
-| `pages/5_compositions_vlm.py` | 🧬 Compositions VLM | Compositions hiérarchique / ensembling / itérative |
+| `pages/5_compositions_vlm.py` | 🧬 Compositions VLM | Compositions hiérarchique / ensembling / itérative, **en cours d'entretien** : toutes reposent sur LocateAnything-3B |
 
 ## État réel des modèles de détection
 
@@ -36,7 +36,7 @@ donc le régime établi, d'autant plus que la passe est courte.
 | `yolo_world_v2` | ✅ Réel | ~210 ms/frame sur 12 frames | Open-vocabulaire ; descend à ~25 ms/frame une fois chargé |
 | `mini_internvl_4b` | ✅ Réel | ~15 s/frame | Grounding via `model.chat`, tuiles 448 |
 | `internvl35_8b` | ✅ Réel | ~14 s/frame | Un seul gros VLM en VRAM à la fois (éviction automatique) |
-| `locate_anything_3b` | ⚠️ Simulation | — | Le code remote (Parallel Box Decoding) est incompatible transformers v5 : le modèle charge et génère, mais la sortie est dégénérée et ne produit aucune boîte. Son chargement est court-circuité (`LOCATE_ANYTHING_DEGRADED=0` pour le réactiver) |
+| `locate_anything_3b` | 🔧 En cours d'entretien | — | Le code remote (Parallel Box Decoding) est incompatible transformers v5 : le modèle charge et génère, mais la sortie est dégénérée et ne produit aucune boîte. Son chargement est court-circuité (`LOCATE_ANYTHING_DEGRADED=0` pour le réactiver). Dans l'interface, il est affiché « en cours d'entretien » et ne peut pas être lancé |
 
 `ALLOW_MOCK=0` désactive le repli sur simulation : un modèle indisponible renvoie alors une erreur
 explicite au lieu de résultats factices.

@@ -40,9 +40,15 @@ MODELS = {
     "GroundingDINO (précis / live)": "grounding_dino",
     "Mini-InternVL-4B (VLM · ~10-15 s/frame)": "mini_internvl_4b",
     "InternVL3.5-8B (VLM · ~10-15 s/frame)": "internvl35_8b",
-    "LocateAnything-3B (simulation)": "locate_anything_3b",
+    "LocateAnything-3B (en cours d'entretien)": "locate_anything_3b",
     "YOLO VisDrone (aérien · 10 classes fixes)": "yolo_visdrone_s",
 }
+
+# Modèles en cours d'entretien : affichés, mais non lançables tant que leur détection ne fonctionne pas.
+EN_ENTRETIEN = {
+    "locate_anything_3b": "son code distant est incompatible avec transformers v5 : le modèle charge et génère, mais sa sortie est dégénérée et ne produit aucune boîte",
+}
+MODELES_ACTIFS = [label for label, mid in MODELS.items() if mid not in EN_ENTRETIEN]
 
 DEMO_VIDEOS = [
     {"name": "Trafic urbain dense", "file": "urban_traffic.mp4",
@@ -698,7 +704,10 @@ st.session_state.detection_queries = [q.strip() for q in qtext.splitlines() if q
 
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    model_label = st.selectbox("Modèle", list(MODELS.keys()))
+    model_label = st.selectbox(
+        "Modèle", list(MODELS.keys()),
+        format_func=lambda lbl: f"🔧 {lbl}" if MODELS[lbl] in EN_ENTRETIEN else lbl,
+    )
     model_id = MODELS[model_label]
 with c2:
     confidence = st.slider("Seuil", 0.1, 0.9, 0.30, 0.05)
@@ -717,10 +726,14 @@ with c4:
     )
     can_run = st.session_state.api_upload_ok and bool(st.session_state.detection_queries)
 
+if model_id in EN_ENTRETIEN:
+    st.info(f"🔧 **{model_label.split(' (')[0]}** est en cours d'entretien : {EN_ENTRETIEN[model_id]}. "
+            "Choisissez un autre modèle.")
+
 run = st.button(
     "🔴 Analyser en direct" if live_mode else "🚀 Analyser (batch)",
     type="primary",
-    disabled=not can_run,
+    disabled=not can_run or model_id in EN_ENTRETIEN,
     use_container_width=True,
 )
 
@@ -738,14 +751,17 @@ ec1, ec2 = st.columns([3, 1])
 with ec1:
     eval_labels = st.multiselect(
         "Modèles à évaluer (passage séquentiel, aperçu live pour chacun)",
-        list(MODELS.keys()),
-        default=list(MODELS.keys())[:2],
+        MODELES_ACTIFS,
+        default=MODELES_ACTIFS[:2],
         help="Les VLM (InternVL) sont précis mais lents (~10-15 s/frame) : "
              "l'aperçu live n'affichera que quelques frames. Ajoutez-les pour "
              "une évaluation complète.",
     )
 with ec2:
     st.metric("Modèles sélectionnés", len(eval_labels))
+_entretien = [lbl.split(" (")[0] for lbl, mid in MODELS.items() if mid in EN_ENTRETIEN]
+if _entretien:
+    st.caption("🔧 En cours d'entretien, donc non proposé ici : " + ", ".join(_entretien) + ".")
 
 run_eval = st.button(
     "⚡ Lancer la démo rapide — évaluer les modèles",

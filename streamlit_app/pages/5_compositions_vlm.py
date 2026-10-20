@@ -24,6 +24,12 @@ inject_global_css()
 st.title("🧬 Compositions VLM")
 st.markdown("Testez les compositions conceptuelles de modèles VLM issues de la littérature 2025-2026.")
 
+# Les trois compositions reposent sur LocateAnything-3B, en cours d'entretien : sans lui, elles
+# mêleraient des détections réelles et des détections simulées.
+COMPOSITIONS_EN_ENTRETIEN = True
+st.warning("🔧 **Compositions en cours d'entretien.** Les trois compositions reposent sur LocateAnything-3B, "
+           "son code distant est incompatible avec transformers v5 : le modèle charge et génère, mais sa sortie est dégénérée et ne produit aucune boîte. Elles restent décrites ici, mais leur lancement est suspendu jusqu'à sa réparation.")
+
 # ── Informations sur les compositions ─────────────────────────────────────────
 with st.expander("📚 Compositions disponibles (littérature 2025-2026)", expanded=False):
     st.markdown("""
@@ -240,7 +246,8 @@ if st.session_state.video_id:
     st.markdown("---")
     render_section_header("🚀", "Étape 5 : Lancer la composition", "Exécuter la composition sur la vidéo")
 
-    launch_disabled = not st.session_state.api_upload_ok or not st.session_state.composition_queries
+    launch_disabled = (COMPOSITIONS_EN_ENTRETIEN or not st.session_state.api_upload_ok
+                       or not st.session_state.composition_queries)
     
     if st.button(
         f"🧬 Lancer la composition {selected_comp_name}",

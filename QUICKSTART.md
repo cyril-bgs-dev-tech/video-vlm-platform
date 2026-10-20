@@ -44,6 +44,20 @@ Une fois la vidéo chargée :
 3. **Ou saisir des requêtes personnalisées** :
    - Exemples : "red car", "person wearing hat", "traffic sign", "bicycle lane"
 
+### Choisir un modèle
+
+| Modèle | État | Quand le choisir |
+|---|---|---|
+| YOLO-World v2 | ✅ actif | temps réel, vocabulaire libre (environ 25 ms par image une fois chargé) |
+| GroundingDINO | ✅ actif | plus précis, environ 175 ms par image |
+| YOLO VisDrone | ✅ actif | vues aériennes, 10 classes fixes |
+| Mini-InternVL-4B | ✅ actif | VLM, environ 15 s par image : quelques images, pas de direct |
+| InternVL3.5-8B | ✅ actif | VLM, environ 14 s par image ; un seul gros VLM en mémoire à la fois |
+| LocateAnything-3B | 🔧 en cours d'entretien | sortie dégénérée sous transformers v5, aucune boîte produite ; affiché mais non lançable |
+
+Les trois compositions de la page « 🧬 Compositions VLM » reposent sur LocateAnything-3B : elles sont
+en cours d'entretien elles aussi. Latences mesurées de bout en bout sur RTX 5090 (voir le README).
+
 ### 4. Lancer l'analyse
 
 1. Ajuster le seuil de confiance (défaut : 0.35)
